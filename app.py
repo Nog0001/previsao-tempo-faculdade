@@ -14,13 +14,32 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- 2. ESTILIZAÇÃO (CSS) ---
+# --- 2. ESTILIZAÇÃO AVANÇADA (CSS) ---
 st.markdown("""
     <style>
+    /* === 1. Mudança Global de Cores (Tira o Vermelho) === */
+    :root {
+        --primary-color: #00d2ff; /* Azul Neon como cor de foco */
+    }
+    
+    /* Fundo Principal */
     .stApp {
         background: linear-gradient(to bottom right, #000428, #004e92);
         color: white;
     }
+    
+    /* === 2. Estilização do Calendário e Inputs === */
+    /* Borda do input quando selecionado */
+    input:focus, div[data-baseweb="input"]:focus-within {
+        border-color: #00d2ff !important;
+        box-shadow: 0 0 0 1px #00d2ff !important;
+    }
+    /* Cor do calendário interno */
+    div[data-baseweb="calendar"] {
+        background-color: #001529 !important;
+    }
+    
+    /* === 3. Cards de Vidro === */
     div[data-testid="stMetric"] {
         background-color: rgba(255, 255, 255, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -31,11 +50,9 @@ st.markdown("""
     }
     div[data-testid="stMetricLabel"] { color: #e0e0e0; font-size: 14px; }
     div[data-testid="stMetricValue"] { color: #ffffff; font-size: 28px; }
+    
+    /* Textos Gerais */
     h1, h2, h3, p, label, .stDateInput label { color: white !important; }
-    .js-plotly-plot {
-        border-radius: 15px;
-        box-shadow: 0px 4px 15px rgba(0,0,0,0.3);
-    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -57,7 +74,7 @@ def carregar_dados():
         df.set_index('data', inplace=True)
         df.dropna(inplace=True)
         
-        # Lags para treinamento
+        # Lags
         df['temp_ontem'] = df['temp_max'].shift(1)
         df['temp_anteontem'] = df['temp_max'].shift(2)
         df.dropna(inplace=True)
@@ -71,7 +88,7 @@ if df is None:
     st.error("Erro de conexão. Tente recarregar.")
     st.stop()
 
-# Treinamento do Modelo
+# Treinamento
 X = df[['temp_ontem', 'temp_anteontem']]
 y = df['temp_max']
 modelo = LinearRegression().fit(X, y)
@@ -81,27 +98,21 @@ ultimos = df.iloc[-1]
 hoje_real = ultimos['temp_max']
 ontem_real = ultimos['temp_ontem']
 
-# --- 4. LÓGICA DE PREVISÃO FUTURA (RECURSIVA) ---
+# --- 4. LÓGICA DE PREVISÃO FUTURA ---
 def prever_dias(qtd_dias):
     previsoes = []
     datas = []
-    
-    # Começamos com os dados conhecidos de hoje
     input_atual = [[hoje_real, ontem_real]]
     data_atual = date.today()
     
     for i in range(qtd_dias):
-        # Prever o próximo dia
         pred = modelo.predict(input_atual)[0]
-        
         data_futura = data_atual + timedelta(days=i+1)
         datas.append(data_futura)
         previsoes.append(pred)
         
-        # Atualizar o input para o próximo passo (Recursão)
-        # O que era "hoje" vira "ontem", e a previsão vira "hoje"
-        novo_ontem = input_atual[0][0] # O antigo hoje
-        novo_hoje = pred               # A nova previsão
+        novo_ontem = input_atual[0][0]
+        novo_hoje = pred
         input_atual = [[novo_hoje, novo_ontem]]
         
     return datas, previsoes
@@ -112,7 +123,6 @@ st.title("🌤️ Clima ES Futuro")
 st.markdown("<p style='text-align: center; color: #cccccc;'>Previsão Inteligente Recursiva</p>", unsafe_allow_html=True)
 st.divider()
 
-# Métricas do Dia
 col1, col2 = st.columns(2)
 with col1:
     st.metric("📅 Data Hoje", f"{date.today().strftime('%d/%m')}")
@@ -120,9 +130,9 @@ with col2:
     st.metric("🌡️ Temp. Hoje", f"{hoje_real}°C")
 
 st.markdown("### 🔮 Simulador de Futuro")
-st.write("Escolha uma data para ver a previsão estimada pela IA:")
+st.write("Escolha uma data para ver a previsão:")
 
-# Input de Data (Limitado a 7 dias para não perder precisão)
+# Calendário
 max_date = date.today() + timedelta(days=7)
 data_escolhida = st.date_input(
     "Data da Previsão",
@@ -131,56 +141,62 @@ data_escolhida = st.date_input(
     max_value=max_date
 )
 
-# Calcular quantos dias faltam até a data escolhida
 dias_para_frente = (data_escolhida - date.today()).days
 
 if dias_para_frente > 0:
     datas_fut, temps_fut = prever_dias(dias_para_frente)
     valor_previsto = temps_fut[-1]
     
-    # Exibir Resultado Gigante
+    # Card de Resultado Grande
     st.markdown(f"""
         <div style='background: rgba(0, 210, 255, 0.15); padding: 20px; border-radius: 15px; text-align: center; border: 1px solid rgba(0, 210, 255, 0.3); margin-bottom: 20px;'>
             <h3 style='margin:0; color: #e0e0e0;'>Previsão para {data_escolhida.strftime('%d/%m')}</h3>
-            <h1 style='margin:0; font-size: 50px; color: #00d2ff;'>{valor_previsto:.1f}°C</h1>
+            <h1 style='margin:0; font-size: 50px; color: #00d2ff; text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);'>{valor_previsto:.1f}°C</h1>
         </div>
     """, unsafe_allow_html=True)
 
-    # Gráfico de Linha do Tempo (Mostra o caminho até lá)
-    st.markdown("#### 📈 Trajetória Prevista")
+    st.markdown("#### 📈 Trajetória (Histórico + Previsão)")
     
-    # Combinar dados recentes + futuros para o gráfico
-    df_passado = df.tail(5).reset_index()[['data', 'temp_max']]
+    # --- CORREÇÃO DO GRÁFICO ---
+    # Aumentei de tail(5) para tail(45) para mostrar muito mais histórico
+    df_passado = df.tail(45).reset_index()[['data', 'temp_max']]
     df_passado['tipo'] = 'Real'
     
     df_futuro = pd.DataFrame({'data': pd.to_datetime(datas_fut), 'temp_max': temps_fut})
     df_futuro['tipo'] = 'Previsão'
     
-    # Criar gráfico com duas cores
     fig = go.Figure()
     
-    # Linha do Passado (Branca)
+    # Linha Histórica
     fig.add_trace(go.Scatter(
         x=df_passado['data'], y=df_passado['temp_max'],
-        mode='lines+markers', name='Histórico',
-        line=dict(color='white', width=2)
+        mode='lines', name='Histórico Recente',
+        line=dict(color='white', width=2),
+        hovertemplate='%{x|%d/%m}: %{y:.1f}°C<extra></extra>' # Tooltip bonito
     ))
     
-    # Linha do Futuro (Azul Neon/Pontilhada)
+    # Linha Futura (Conectada)
     fig.add_trace(go.Scatter(
-        x=[df_passado.iloc[-1]['data']] + list(df_futuro['data']), # Conecta o último ponto
+        x=[df_passado.iloc[-1]['data']] + list(df_futuro['data']),
         y=[df_passado.iloc[-1]['temp_max']] + list(df_futuro['temp_max']),
         mode='lines+markers', name='Previsão IA',
-        line=dict(color='#00d2ff', width=3, dash='dot')
+        line=dict(color='#00d2ff', width=3, dash='dot'),
+        marker=dict(size=6, color='#00d2ff'),
+        hovertemplate='%{x|%d/%m}: %{y:.1f}°C<extra></extra>'
     ))
 
     fig.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
         font=dict(color='white'),
-        xaxis=dict(showgrid=False, title=''),
+        hovermode="x unified", # Faz uma linha vertical ao passar o mouse
+        xaxis=dict(
+            showgrid=False, 
+            title='',
+            fixedrange=False # Permite zoom e arrastar
+        ),
         yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'),
-        margin=dict(l=20, r=20, t=20, b=20),
+        margin=dict(l=10, r=10, t=30, b=10),
         legend=dict(orientation="h", y=1.1)
     )
     
@@ -188,6 +204,3 @@ if dias_para_frente > 0:
 
 else:
     st.warning("Selecione uma data futura.")
-
-# Rodapé
-st.caption("Nota: A precisão diminui conforme a data se afasta (efeito cascata).")
