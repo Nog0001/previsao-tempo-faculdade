@@ -10,11 +10,10 @@ from datetime import date
 st.set_page_config(
     page_title="Previsão ES",
     page_icon="🌤️",
-    layout="centered" # 'Centered' fica muito melhor em celulares do que 'Wide'
+    layout="centered"
 )
 
 # --- 2. ESTILIZAÇÃO (CSS PERSONALIZADO) ---
-# Aqui criamos o fundo degradê e os cards estilo "vidro"
 st.markdown("""
     <style>
     /* Fundo Degradê (Céu) */
@@ -43,11 +42,9 @@ st.markdown("""
         font-size: 28px;
     }
     
-    /* Título Centralizado */
-    h1 {
-        text-align: center;
-        color: white;
-        text-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+    /* Título e Textos */
+    h1, h2, h3, p {
+        color: white !important;
     }
     
     /* Ajuste do Gráfico */
@@ -58,7 +55,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. DADOS E IA (Mesma lógica robusta) ---
+# --- 3. DADOS E IA ---
 @st.cache_data(ttl=3600)
 def carregar_dados():
     # Vitória - ES
@@ -108,7 +105,7 @@ st.markdown("<p style='text-align: center; color: #cccccc;'>Previsão via Machin
 
 st.markdown("---")
 
-# Layout de Colunas (No celular, o Streamlit empilha isso automaticamente)
+# Layout de Colunas
 col1, col2 = st.columns(2)
 col3, col4 = st.columns(2)
 
@@ -120,20 +117,18 @@ with col2:
 with col3:
     st.metric("🌡️ Hoje (Real)", f"{hoje_real}°C")
 with col4:
-    # Destacando a previsão
     st.metric("🔮 Previsão Amanhã", f"{previsao:.1f}°C", delta_color="normal")
 
 st.markdown("### 📈 Tendência Recente")
 
-# Gráfico Otimizado para Dark Mode
+# --- CORREÇÃO DO GRÁFICO AQUI ---
 df_grafico = df.tail(60).reset_index()
 fig = px.area(df_grafico, x='data', y='temp_max', 
-              title='', 
               labels={'data': '', 'temp_max': 'Temp (°C)'})
 
-# Personalizando o Plotly para combinar com o fundo escuro
+# Configuração visual corrigida
 fig.update_layout(
-    paper_bgcolor='rgba(0,0,0,0)', # Fundo transparente
+    paper_bgcolor='rgba(0,0,0,0)', 
     plot_bgcolor='rgba(0,0,0,0)',
     font_color='white',
     height=350,
@@ -141,11 +136,15 @@ fig.update_layout(
     xaxis=dict(showgrid=False),
     yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)')
 )
-fig.update_traces(line_color='#00d2ff', fill_color='rgba(0, 210, 255, 0.2)')
+
+# O comando abaixo foi o que causou o erro. Agora está corrigido:
+fig.update_traces(
+    line=dict(color='#00d2ff', width=3),
+    fillcolor='rgba(0, 210, 255, 0.2)' # Corrigido de fill_color para fillcolor
+)
 
 st.plotly_chart(fig, use_container_width=True)
 
-# Botãozinho de recarregar camuflado
 if st.button("🔄 Atualizar Dados"):
     st.cache_data.clear()
     st.rerun()
