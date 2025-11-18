@@ -92,7 +92,7 @@ def prever_dias(qtd_dias):
     return datas, previsoes
 
 # --- 5. INTERFACE ---
-st.title("🌤️ Clima ES Futuro")
+st.title("🌤️ ÁGUIAS DA PREVISÃO")
 st.divider()
 
 col1, col2 = st.columns(2)
@@ -116,6 +116,7 @@ if dias > 0:
     fig.add_trace(go.Scatter(x=[df_passado.iloc[-1]['data']] + list(df_futuro['data']), y=[df_passado.iloc[-1]['temp_max']] + list(df_futuro['temp_max']), mode='lines+markers', name='Previsão IA', line=dict(color='#00d2ff', width=3, dash='dot'), marker=dict(size=6, color='#00d2ff'), hovertemplate='%{x|%d/%m}: %{y:.1f}°C<extra></extra>'))
     fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='white'), hovermode="x unified", xaxis=dict(showgrid=False, title=''), yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'), margin=dict(l=10, r=10, t=30, b=10), legend=dict(orientation="h", y=1.1))
     st.plotly_chart(fig, use_container_width=True)
+
 
 
 
